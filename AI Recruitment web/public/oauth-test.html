@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth Test - SmartHire AI</title>
+</head>
+<body>
+    <h1>OAuth Test Page</h1>
+    <p>If you can see this page, the URL is working!</p>
+    <p>Current URL: <span id="url"></span></p>
+    <p>OAuth Code: <span id="code"></span></p>
+    <p>OAuth Error: <span id="error"></span></p>
+    
+    <script>
+        document.getElementById('url').textContent = window.location.href;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        document.getElementById('code').textContent = code || 'None';
+        document.getElementById('error').textContent = error || 'None';
+        
+        if (code) {
+            alert('SUCCESS: OAuth code received: ' + code.substring(0, 20) + '...');
+            // Redirect back to main app
+            setTimeout(() => {
+                window.location.href = '/?oauth_success=true&code=' + encodeURIComponent(code);
+            }, 3000);
+        }
+        
+        if (error) {
+            alert('ERROR: OAuth failed: ' + error);
+        }
+    </script>
+</body>
+</html>
