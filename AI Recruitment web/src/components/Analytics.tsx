@@ -152,7 +152,7 @@ export function Analytics({ user }: AnalyticsProps) {
   ];
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
