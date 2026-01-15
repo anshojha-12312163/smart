@@ -1,37 +1,10 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Sun, Moon } from 'lucide-react';
+import { useTheme } from './ThemeProvider';
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    // Check localStorage or system preference
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    const shouldBeDark = savedTheme ? savedTheme === 'dark' : prefersDark;
-    setIsDark(shouldBeDark);
-    
-    if (shouldBeDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    
-    if (newTheme) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
     <motion.button
@@ -74,44 +47,25 @@ export function ThemeToggle() {
 
 // Compact pill-style toggle
 export function ThemeTogglePill() {
-  const [isDark, setIsDark] = useState(true);
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = savedTheme ? savedTheme === 'dark' : prefersDark;
-    setIsDark(shouldBeDark);
-    
-    if (shouldBeDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    
-    if (newTheme) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    if (theme !== newTheme) {
+      toggleTheme();
     }
   };
 
   return (
-    <div className="flex items-center gap-2 p-1 rounded-full glass-card">
+    <div className="flex items-center gap-2 p-1 rounded-full glass-card bg-white/10 dark:bg-gray-800/50 backdrop-blur-sm">
       <motion.button
-        onClick={() => { if (!isDark) toggleTheme(); }}
+        onClick={() => setTheme('dark')}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className={`px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium transition-all ${
           isDark
             ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-            : 'text-gray-500 hover:text-gray-700'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
         }`}
       >
         <Moon className="w-4 h-4" />
@@ -119,13 +73,13 @@ export function ThemeTogglePill() {
       </motion.button>
       
       <motion.button
-        onClick={() => { if (isDark) toggleTheme(); }}
+        onClick={() => setTheme('light')}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className={`px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium transition-all ${
           !isDark
             ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
-            : 'text-gray-400 hover:text-gray-300'
+            : 'text-gray-400 dark:text-gray-500 hover:text-gray-300 dark:hover:text-gray-400'
         }`}
       >
         <Sun className="w-4 h-4" />
