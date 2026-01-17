@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from './ThemeProvider';
 import {
   User,
   Globe,
@@ -100,6 +101,7 @@ interface MentorProfile {
 }
 
 export function ProfessionalBrandBuilder({ user }: ProfessionalBrandBuilderProps) {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedTemplate, setSelectedTemplate] = useState('tech');
   const [showWebsiteBuilder, setShowWebsiteBuilder] = useState(false);

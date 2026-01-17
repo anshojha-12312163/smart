@@ -88,15 +88,26 @@ export function AboutUs({ user }: AboutUsProps) {
 
   const teamMembers = [
     {
+      name: 'Ansh Ojha',
+      role: 'Founder & CEO',
+      bio: 'Visionary entrepreneur with expertise in AI and recruitment technology',
+      image: '👨‍💼',
+      category: 'leadership',
+      linkedin: '#',
+      twitter: '#',
+      expertise: ['AI Strategy', 'Product Vision', 'Leadership', 'Innovation'],
+      color: 'cyan'
+    },
+    {
       name: 'Dr. Sarah Chen',
-      role: 'CEO & Co-Founder',
+      role: 'CTO & Co-Founder',
       bio: 'Former Google AI Lead with 15 years in ML/AI',
       image: '👩‍💼',
       category: 'leadership',
       linkedin: '#',
       twitter: '#',
       expertise: ['AI Strategy', 'Product Vision', 'Leadership'],
-      color: 'cyan'
+      color: 'purple'
     },
     {
       name: 'Michael Rodriguez',
@@ -341,7 +352,7 @@ export function AboutUs({ user }: AboutUsProps) {
                 <h2 className="text-4xl font-bold text-white mb-4">Our Story</h2>
                 <div className="space-y-4 text-gray-300">
                   <p>
-                    Founded in 2020 by a team of AI researchers and HR technology veterans, SmartHire AI was born from a simple observation: traditional recruiting was broken.
+                    Founded in 2020 by Ansh Ojha and a team of AI researchers and HR technology veterans, SmartHire AI was born from a simple observation: traditional recruiting was broken.
                   </p>
                   <p>
                     We watched talented candidates get overlooked because of keyword-matching algorithms, and saw hiring managers drowning in hundreds of unqualified applications. We knew there had to be a better way.
@@ -792,11 +803,11 @@ export function AboutUs({ user }: AboutUsProps) {
               <div className="mt-8 flex items-center justify-center gap-6 text-gray-400">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  <span className="text-sm">hello@smarthire.ai</span>
+                  <span className="text-sm">anshojha420@gmail.com</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  <span className="text-sm">+1 (555) 123-4567</span>
+                  <span className="text-sm">+91 9956126495</span>
                 </div>
               </div>
             </div>

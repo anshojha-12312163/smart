@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { realTimeApiService } from '../services/realTimeApiService';
+import { socketService } from '../services/socketService';
+import { useTheme } from './ThemeProvider';
 import { 
   FileText, 
   BarChart3, 
@@ -23,7 +26,10 @@ import {
   Linkedin,
   Github,
   Star,
-  CheckCircle
+  CheckCircle,
+  Zap,
+  Target,
+  TrendingUp
 } from 'lucide-react';
 
 interface CVTemplate {
@@ -116,17 +122,21 @@ interface CVFormData {
 
 interface CVAnalysisBuilderProps {
   user?: any;
+  onNavigate?: (page: string) => void;
 }
 
-export function CVAnalysisBuilder({ user }: CVAnalysisBuilderProps) {
+export function CVAnalysisBuilder({ user, onNavigate }: CVAnalysisBuilderProps) {
+  const { theme } = useTheme();
   const [activeMode, setActiveMode] = useState('builder');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('personal');
+  const [realTimeAnalytics, setRealTimeAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [cvData, setCvData] = useState<CVFormData>({
     personalInfo: {
-      firstName: '',
-      lastName: '',
-      email: '',
+      firstName: user?.name?.split(' ')[0] || '',
+      lastName: user?.name?.split(' ')[1] || '',
+      email: user?.email || '',
       phone: '',
       address: '',
       city: '',
@@ -135,7 +145,7 @@ export function CVAnalysisBuilder({ user }: CVAnalysisBuilderProps) {
       website: '',
       linkedin: '',
       github: '',
-      profileImage: ''
+      profileImage: user?.picture || ''
     },
     professionalSummary: '',
     workExperience: [],
@@ -146,6 +156,66 @@ export function CVAnalysisBuilder({ user }: CVAnalysisBuilderProps) {
     languages: [],
     awards: []
   });
+
+  // Load real user data and analytics
+  useEffect(() => {
+    const loadCVData = async () => {
+      try {
+        setLoading(true);
+        console.log('📄 Loading real CV data and analytics...');
+        
+        // Load saved CV data from localStorage
+        const savedCVData = localStorage.getItem('cvData');
+        if (savedCVData) {
+          const parsedData = JSON.parse(savedCVData);
+          setCvData(prev => ({ ...prev, ...parsedData }));
+        }
+        
+        // Load real-time analytics for skill recommendations
+        const userId = user?.id || user?.googleId || user?.email || `user_${Date.now()}`;
+        const analytics = await realTimeApiService.fetchAnalytics(userId);
+        
+        setRealTimeAnalytics(analytics);
+        
+        // Auto-populate skills from analytics
+        if (analytics?.topSkills && analytics.topSkills.length > 0) {
+          const skillsFromAnalytics = analytics.topSkills.map((skill: string, index: number) => ({
+            id: `skill_${index}`,
+            name: skill,
+            level: 'Advanced' as const,
+            category: 'Technical'
+          }));
+          
+          setCvData(prev => ({
+            ...prev,
+            skills: prev.skills.length === 0 ? skillsFromAnalytics : prev.skills
+          }));
+        }
+        
+        // Track CV builder activity
+        realTimeApiService.trackActivity({
+          type: 'profile_update',
+          data: { section: 'cv_builder', userId }
+        });
+        
+        console.log('✅ CV data loaded with real analytics');
+        
+      } catch (error) {
+        console.error('❌ Failed to load CV data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCVData();
+  }, [user]);
+
+  // Save CV data to localStorage whenever it changes
+  useEffect(() => {
+    if (!loading) {
+      localStorage.setItem('cvData', JSON.stringify(cvData));
+    }
+  }, [cvData, loading]);
 
   const modes = [
     { id: 'builder', label: 'CV Builder', icon: FileText },
@@ -1253,7 +1323,11 @@ export function CVAnalysisBuilder({ user }: CVAnalysisBuilderProps) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 to-blue-50'
+    }`}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

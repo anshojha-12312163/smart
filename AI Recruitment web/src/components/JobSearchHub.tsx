@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { realTimeApiService } from '../services/realTimeApiService';
 import { jobBoardsApi } from '../services/jobBoardsApi';
 import { socketService } from '../services/socketService';
+import { useTheme } from './ThemeProvider';
 import {
   Search,
   MapPin,
@@ -108,6 +109,7 @@ interface Job {
 }
 
 export function JobSearchHub({ user }: JobSearchHubProps) {
+  const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -827,7 +829,11 @@ export function JobSearchHub({ user }: JobSearchHubProps) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 to-blue-50'
+    }`}>
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <motion.div

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, ChevronDown, Play, ArrowRight, Search, Target, MessageSquare, Star, Users, TrendingUp, Clock, Shield, Check, Sparkles, Brain, Zap, Mail, Phone, MapPin, Calendar, Award, BarChart3, Globe, Cpu, Network, Eye, Filter, UserCheck, Briefcase, Building } from 'lucide-react';
 import { LoginModal } from './LoginModal';
-import { DemoVideoPlayer } from './DemoVideoPlayer';
 import { SmartHireLogo } from './SmartHireLogo';
+import { emailService } from '../services/emailService';
 
 interface LandingPageProps {
   onLogin: (userData: any) => void;
@@ -67,7 +67,6 @@ export function LandingPage({ onLogin }: LandingPageProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showDemoModal, setShowDemoModal] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [currentSection, setCurrentSection] = useState('home');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -175,82 +174,135 @@ export function LandingPage({ onLogin }: LandingPageProps) {
     if (!validateContactForm()) return;
     
     setIsSubmitting(true);
+    setSubmitStatus('idle');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('📧 Sending contact form email...');
       
-      // Create message summary
-      const messageData = {
-        ...contactForm,
-        timestamp: new Date().toISOString(),
-        id: Math.random().toString(36).substr(2, 9)
-      };
+      // Send email using real email service
+      const response = await emailService.sendContactEmail(contactForm);
       
-      // Store in localStorage for demo purposes
-      const existingMessages = JSON.parse(localStorage.getItem('smarthire_messages') || '[]');
-      existingMessages.push(messageData);
-      localStorage.setItem('smarthire_messages', JSON.stringify(existingMessages));
-      
-      // Show success message
-      alert('Message Sent Successfully!\n\nFrom: ' + contactForm.firstName + ' ' + contactForm.lastName + '\nEmail: ' + contactForm.email + '\nCompany: ' + (contactForm.company || 'Not specified') + '\n\nYour message has been received and we will respond within 24 hours.\n\nContact: anshojha420@gmail.com\nPhone: +91 9956126495\n\nThank you!');
-      
-      // Reset form
-      setContactForm({
-        firstName: '',
-        lastName: '',
-        email: '',
-        company: '',
-        message: '',
-        phone: '',
-        subject: 'General Inquiry'
-      });
-      
-      setSubmitStatus('success');
+      if (response.success) {
+        // Show beautiful success message
+        const successMessage = `
+✅ Message Sent Successfully!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 From: ${contactForm.firstName} ${contactForm.lastName}
+📧 Email: ${contactForm.email}
+🏢 Company: ${contactForm.company || 'Not specified'}
+📋 Subject: ${contactForm.subject}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${response.message}
+
+📞 Contact Information:
+   Email: anshojha420@gmail.com
+   Phone: +91 9956126495
+   Hours: Mon-Fri 9am to 6pm IST
+
+Thank you for reaching out to SmartHire AI!
+We look forward to helping you transform your hiring process.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        `.trim();
+        
+        alert(successMessage);
+        
+        // Try to send auto-reply to user
+        try {
+          await emailService.sendAutoReply(
+            contactForm.email,
+            `${contactForm.firstName} ${contactForm.lastName}`
+          );
+        } catch (error) {
+          console.warn('Could not send auto-reply:', error);
+        }
+        
+        // Reset form
+        setContactForm({
+          firstName: '',
+          lastName: '',
+          email: '',
+          company: '',
+          message: '',
+          phone: '',
+          subject: 'General Inquiry'
+        });
+        
+        setSubmitStatus('success');
+        
+        // Store in localStorage for history
+        const messageData = {
+          ...contactForm,
+          timestamp: new Date().toISOString(),
+          id: Math.random().toString(36).substr(2, 9),
+          status: 'sent'
+        };
+        const existingMessages = JSON.parse(localStorage.getItem('smarthire_messages') || '[]');
+        existingMessages.push(messageData);
+        localStorage.setItem('smarthire_messages', JSON.stringify(existingMessages));
+        
+      } else {
+        throw new Error(response.error || 'Failed to send email');
+      }
       
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
       setSubmitStatus('error');
-      alert('❌ Failed to send message. Please try again or contact us directly at anshojha420@gmail.com');
+      
+      const errorMessage = `
+❌ Unable to Send Message Automatically
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+We encountered an issue sending your message automatically.
+
+📧 Please contact us directly:
+
+   Email: anshojha420@gmail.com
+   Phone: +91 9956126495
+   Hours: Mon-Fri 9am to 6pm IST
+
+Or try again in a few moments.
+
+Your message has been saved locally and you can
+also use the mailto link that will open shortly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      `.trim();
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // View message history (for demo purposes)
+  // View message history
   const viewMessageHistory = () => {
     const messages = JSON.parse(localStorage.getItem('smarthire_messages') || '[]');
-    const demoRequests = JSON.parse(localStorage.getItem('smarthire_demo_requests') || '[]');
     
-    if (messages.length === 0 && demoRequests.length === 0) {
+    if (messages.length === 0) {
       alert('📭 No messages found.\n\nSend a message using the contact form to see it appear here!');
       return;
     }
     
     let historyText = '📧 MESSAGE HISTORY\n' + '='.repeat(40) + '\n\n';
     
-    if (messages.length > 0) {
-      historyText += '💬 CONTACT MESSAGES:\n';
-      messages.forEach((msg: any, index: number) => {
-        historyText += `\n${index + 1}. ${msg.firstName} ${msg.lastName}\n`;
-        historyText += `   📧 ${msg.email}\n`;
-        historyText += `   🏢 ${msg.company || 'No company'}\n`;
-        historyText += `   📝 ${msg.subject}\n`;
-        historyText += `   💬 "${msg.message.substring(0, 50)}..."\n`;
-        historyText += `   📅 ${new Date(msg.timestamp).toLocaleString()}\n`;
-      });
-    }
+    historyText += '💬 CONTACT MESSAGES:\n';
+    messages.forEach((msg: any, index: number) => {
+      historyText += `\n${index + 1}. ${msg.firstName} ${msg.lastName}\n`;
+      historyText += `   📧 ${msg.email}\n`;
+      historyText += `   🏢 ${msg.company || 'No company'}\n`;
+      historyText += `   📝 ${msg.subject}\n`;
+      historyText += `   💬 "${msg.message.substring(0, 50)}..."\n`;
+      historyText += `   📅 ${new Date(msg.timestamp).toLocaleString()}\n`;
+      historyText += `   ✅ Status: ${msg.status || 'Sent'}\n`;
+    });
     
-    if (demoRequests.length > 0) {
-      historyText += `\n\n🎯 DEMO REQUESTS: ${demoRequests.length}\n`;
-      demoRequests.forEach((req: any, index: number) => {
-        historyText += `\n${index + 1}. Demo Request\n`;
-        historyText += `   📅 ${new Date(req.timestamp).toLocaleString()}\n`;
-        historyText += `   📍 Source: ${req.source}\n`;
-      });
-    }
-    
-    historyText += '\n\n💡 This is a demo feature showing how messages would be stored and managed in the real system.';
+    historyText += '\n\n📞 Contact: anshojha420@gmail.com | +91 9956126495';
     
     alert(historyText);
   };
@@ -542,11 +594,11 @@ export function LandingPage({ onLogin }: LandingPageProps) {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowDemoModal(true)}
+                  onClick={() => setShowLoginModal(true)}
                   className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-blue-900 transition-all flex items-center justify-center gap-2"
                 >
-                  <Play className="w-5 h-5" />
-                  Watch Demo
+                  <ArrowRight className="w-5 h-5" />
+                  Learn More
                 </motion.button>
               </motion.div>
             </motion.div>
@@ -906,7 +958,6 @@ export function LandingPage({ onLogin }: LandingPageProps) {
                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="General Inquiry">General Inquiry</option>
-                    <option value="Product Demo">Product Demo</option>
                     <option value="Pricing Information">Pricing Information</option>
                     <option value="Technical Support">Technical Support</option>
                     <option value="Partnership">Partnership Opportunity</option>
@@ -1025,39 +1076,26 @@ export function LandingPage({ onLogin }: LandingPageProps) {
               <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6">
                 <h4 className="font-bold text-gray-900 mb-3">Ready to get started?</h4>
                 <p className="text-gray-600 mb-4">
-                  Book a demo with our team and see how SmartHireAI can transform your hiring process.
+                  Have questions? Fill out the contact form above or reach out directly.
                 </p>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    const demoBooking = {
-                      timestamp: new Date().toISOString(),
-                      type: 'demo_request',
-                      source: 'contact_section'
-                    };
-                    
-                    // Store demo request
-                    const existingRequests = JSON.parse(localStorage.getItem('smarthire_demo_requests') || '[]');
-                    existingRequests.push(demoBooking);
-                    localStorage.setItem('smarthire_demo_requests', JSON.stringify(existingRequests));
-                    
-                    const demoMessage = `🎯 Demo Request Submitted!\n\n📅 What's Next:\n• Our product specialist will contact you within 2 hours\n• We'll schedule a personalized 30-minute demo\n• You'll see SmartHire's full capabilities live\n• Get answers to all your questions\n\n📋 Demo Includes:\n• AI-powered candidate matching\n• Automated screening process\n• Real-time analytics dashboard\n• Integration capabilities\n• Custom workflow setup\n\n📞 Prefer to talk now?\nCall: +91 9956126495\nEmail: anshojha420@gmail.com\n\n⏰ Available Times:\nMon-Fri: 9 AM - 6 PM IST\nSaturday: 10 AM - 2 PM IST\n\nThank you for your interest in SmartHire!`;
-                    
-                    alert(demoMessage);
-                    setShowDemoModal(true);
+                    // Scroll to contact form
+                    document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                   className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  📅 Book a Demo
+                  📧 Contact Us
                 </motion.button>
               </div>
 
-              {/* Message History Viewer (Demo Feature) */}
+              {/* Message History Viewer */}
               <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl p-6 border border-gray-200">
                 <h4 className="font-bold text-gray-900 mb-3">📧 Message Center</h4>
                 <p className="text-gray-600 mb-4 text-sm">
-                  View sent messages and demo requests (demo feature)
+                  View your sent messages and contact history
                 </p>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -1121,48 +1159,6 @@ export function LandingPage({ onLogin }: LandingPageProps) {
         onLogin={onLogin}
       />
 
-      {/* Demo Modal */}
-      <AnimatePresence>
-        {showDemoModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowDemoModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-cyan-600">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">SmartHireAI Platform Demo</h2>
-                  <p className="text-blue-100 mt-1">Interactive walkthrough of all features</p>
-                </div>
-                <button
-                  onClick={() => setShowDemoModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="w-6 h-6 text-white" />
-                </button>
-              </div>
-
-              {/* Demo Video Content */}
-              <div className="p-6 bg-gray-50 max-h-[80vh] overflow-y-auto">
-                <DemoVideoPlayer onClose={() => setShowDemoModal(false)} onLogin={() => {
-                  setShowDemoModal(false);
-                  setShowLoginModal(true);
-                }} />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

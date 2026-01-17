@@ -214,7 +214,7 @@ async function fetchAdzunaJobs(query = 'software developer', location = 'us', li
           app_key: appKey,
           what: query,
           results_per_page: limit,
-          content-type: 'application/json'
+          'content-type': 'application/json'
         }
       }
     );

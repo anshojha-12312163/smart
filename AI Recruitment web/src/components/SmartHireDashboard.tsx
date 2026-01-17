@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { realTimeApiService } from '../services/realTimeApiService';
+import { useTheme } from './ThemeProvider';
 import {
   BarChart3,
   Calendar,
@@ -36,6 +37,7 @@ interface DashboardProps {
 }
 
 export function SmartHireDashboard({ user, userType = 'jobseeker', onNavigate }: DashboardProps) {
+  const { theme } = useTheme();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
   const [realTimeStats, setRealTimeStats] = useState<any>(null);
@@ -61,7 +63,7 @@ export function SmartHireDashboard({ user, userType = 'jobseeker', onNavigate }:
     const loadRealTimeData = async () => {
       try {
         setLoading(true);
-        const userId = user?.id || user?.googleId || 'demo-user';
+        const userId = user?.id || user?.googleId || user?.email || `user_${Date.now()}`;
         const analytics = await realTimeApiService.fetchAnalytics(userId);
         setRealTimeStats(analytics);
       } catch (error) {
@@ -224,7 +226,8 @@ export function SmartHireDashboard({ user, userType = 'jobseeker', onNavigate }:
     { action: 'Practice interview session completed', time: '3 days ago', status: 'completed' },
   ];
 
-  const jobRecommendations = [
+  // Use real job data from real-time service or fallback to static data
+  const [jobRecommendations, setJobRecommendations] = useState([
     {
       title: 'Senior Full Stack Developer',
       company: 'Stripe',
@@ -249,7 +252,47 @@ export function SmartHireDashboard({ user, userType = 'jobseeker', onNavigate }:
       match: 88,
       logo: '🚗'
     },
-  ];
+  ]);
+
+  // Load real job recommendations
+  useEffect(() => {
+    const loadRealJobs = async () => {
+      try {
+        // Import jobBoardsApi dynamically to avoid circular imports
+        const { jobBoardsApi } = await import('../services/jobBoardsApi');
+        
+        console.log('🔍 Loading real job recommendations...');
+        const realJobs = await jobBoardsApi.searchJobs({
+          query: 'software engineer',
+          location: 'United States',
+          datePosted: 'week',
+          page: 1
+        });
+
+        if (realJobs && realJobs.length > 0) {
+          // Transform real jobs to dashboard format
+          const transformedJobs = realJobs.slice(0, 3).map((job, index) => ({
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            salary: job.salary || 'Competitive',
+            match: 95 - (index * 3), // Simulate match score
+            logo: job.companyLogo || '🏢',
+            id: job.id,
+            source: job.source,
+            applyUrl: job.applyUrl
+          }));
+
+          setJobRecommendations(transformedJobs);
+          console.log(`✅ Loaded ${transformedJobs.length} real job recommendations`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not load real jobs, using fallback data:', error);
+      }
+    };
+
+    loadRealJobs();
+  }, []);
 
   const achievements = [
     { name: 'Interview Streak', count: 5, icon: '🔥' },
@@ -266,7 +309,11 @@ export function SmartHireDashboard({ user, userType = 'jobseeker', onNavigate }:
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 to-blue-50'
+    }`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div

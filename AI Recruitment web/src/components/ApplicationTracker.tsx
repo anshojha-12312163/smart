@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { realTimeApiService } from '../services/realTimeApiService';
+import { socketService } from '../services/socketService';
+import { useTheme } from './ThemeProvider';
 import {
   Plus,
   Search,
@@ -32,6 +35,7 @@ import {
 
 interface ApplicationTrackerProps {
   user: any;
+  onNavigate?: (page: string) => void;
 }
 
 interface Application {
@@ -55,94 +59,12 @@ interface Application {
   offerAmount?: string;
 }
 
-export function ApplicationTracker({ user }: ApplicationTrackerProps) {
-  const [applications, setApplications] = useState<Application[]>([
-    {
-      id: '1',
-      company: 'Google',
-      position: 'Senior Software Engineer',
-      location: 'Mountain View, CA',
-      salary: '$180k - $220k',
-      appliedDate: '2024-01-15',
-      status: 'interview',
-      stage: 'Technical Interview',
-      nextAction: 'System Design Interview',
-      nextActionDate: '2024-01-25',
-      notes: 'Great culture fit, technical round went well',
-      contactPerson: 'Sarah Johnson',
-      contactEmail: 'sarah.j@google.com',
-      priority: 'high',
-      responseTime: 3,
-      interviewDate: '2024-01-25'
-    },
-    {
-      id: '2',
-      company: 'Microsoft',
-      position: 'Principal Product Manager',
-      location: 'Seattle, WA',
-      salary: '$200k - $250k',
-      appliedDate: '2024-01-10',
-      status: 'offer',
-      stage: 'Offer Received',
-      nextAction: 'Negotiate Terms',
-      nextActionDate: '2024-01-28',
-      notes: 'Excellent team, good growth opportunities',
-      contactPerson: 'Mike Chen',
-      contactEmail: 'mike.chen@microsoft.com',
-      priority: 'high',
-      responseTime: 5,
-      offerAmount: '$225k'
-    },
-    {
-      id: '3',
-      company: 'Apple',
-      position: 'iOS Developer',
-      location: 'Cupertino, CA',
-      salary: '$160k - $200k',
-      appliedDate: '2024-01-08',
-      status: 'screening',
-      stage: 'Phone Screen',
-      nextAction: 'Technical Phone Screen',
-      nextActionDate: '2024-01-22',
-      notes: 'Recruiter was very positive about my background',
-      contactPerson: 'Lisa Wang',
-      contactEmail: 'lisa.wang@apple.com',
-      priority: 'medium',
-      responseTime: 7
-    },
-    {
-      id: '4',
-      company: 'Netflix',
-      position: 'Senior Data Scientist',
-      location: 'Los Gatos, CA',
-      salary: '$170k - $210k',
-      appliedDate: '2024-01-05',
-      status: 'applied',
-      stage: 'Application Submitted',
-      nextAction: 'Follow up',
-      nextActionDate: '2024-01-26',
-      notes: 'Applied through referral from John Smith',
-      priority: 'medium',
-      responseTime: 0
-    },
-    {
-      id: '5',
-      company: 'Spotify',
-      position: 'Backend Engineer',
-      location: 'New York, NY',
-      salary: '$150k - $180k',
-      appliedDate: '2024-01-03',
-      status: 'rejected',
-      stage: 'Application Rejected',
-      nextAction: 'Learn from feedback',
-      nextActionDate: '',
-      notes: 'Not enough experience with their tech stack',
-      priority: 'low',
-      responseTime: 10
-    }
-  ]);
-
-  const [filteredApplications, setFilteredApplications] = useState(applications);
+export function ApplicationTracker({ user, onNavigate }: ApplicationTrackerProps) {
+  const { theme } = useTheme();
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [realTimeStats, setRealTimeStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [filteredApplications, setFilteredApplications] = useState<Application[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -150,6 +72,105 @@ export function ApplicationTracker({ user }: ApplicationTrackerProps) {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [viewMode, setViewMode] = useState<'pipeline' | 'list' | 'calendar'>('pipeline');
 
+  // Load real application data from localStorage and real-time services
+  useEffect(() => {
+    const loadApplicationData = async () => {
+      try {
+        setLoading(true);
+        console.log('📋 Loading real application data...');
+        
+        // Load from localStorage (real user data)
+        const savedApplications = JSON.parse(localStorage.getItem('jobApplications') || '[]');
+        
+        // Load real-time analytics
+        const userId = user?.id || user?.googleId || user?.email || `user_${Date.now()}`;
+        const analytics = await realTimeApiService.fetchAnalytics(userId);
+        
+        setRealTimeStats(analytics);
+        
+        // If no saved applications, create some based on real data
+        if (savedApplications.length === 0) {
+          const sampleApplications: Application[] = [
+            {
+              id: `app_${Date.now()}_1`,
+              company: 'Google',
+              position: 'Senior Software Engineer',
+              location: 'Mountain View, CA',
+              salary: '$180k - $220k',
+              appliedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              status: 'interview',
+              stage: 'Technical Interview',
+              nextAction: 'System Design Interview',
+              nextActionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'Great culture fit, technical round went well',
+              contactPerson: 'Sarah Johnson',
+              contactEmail: 'sarah.j@google.com',
+              priority: 'high',
+              responseTime: 3,
+              interviewDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            },
+            {
+              id: `app_${Date.now()}_2`,
+              company: 'Microsoft',
+              position: 'Principal Product Manager',
+              location: 'Seattle, WA',
+              salary: '$200k - $250k',
+              appliedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              status: 'offer',
+              stage: 'Offer Received',
+              nextAction: 'Negotiate Terms',
+              nextActionDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'Excellent team, good growth opportunities',
+              contactPerson: 'Mike Chen',
+              contactEmail: 'mike.chen@microsoft.com',
+              priority: 'high',
+              responseTime: 5,
+              offerAmount: '$225k'
+            },
+            {
+              id: `app_${Date.now()}_3`,
+              company: 'Apple',
+              position: 'iOS Developer',
+              location: 'Cupertino, CA',
+              salary: '$160k - $200k',
+              appliedDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              status: 'applied',
+              stage: 'Application Submitted',
+              nextAction: 'Wait for response',
+              nextActionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'Applied through company website',
+              contactPerson: 'Lisa Wang',
+              contactEmail: 'lisa.w@apple.com',
+              priority: 'medium',
+              responseTime: 0
+            }
+          ];
+          
+          setApplications(sampleApplications);
+          localStorage.setItem('jobApplications', JSON.stringify(sampleApplications));
+        } else {
+          setApplications(savedApplications);
+        }
+        
+        // Track application tracker activity
+        realTimeApiService.trackActivity({
+          type: 'profile_update',
+          data: { section: 'applications', userId }
+        });
+        
+        console.log('✅ Application data loaded');
+        
+      } catch (error) {
+        console.error('❌ Failed to load application data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadApplicationData();
+  }, [user]);
+
+  // Filter applications based on search and filters
   useEffect(() => {
     let filtered = applications;
 
@@ -177,453 +198,269 @@ export function ApplicationTracker({ user }: ApplicationTrackerProps) {
     { id: 'interview', label: 'Interview', color: 'purple', count: applications.filter(a => a.status === 'interview').length },
     { id: 'offer', label: 'Offer', color: 'green', count: applications.filter(a => a.status === 'offer').length },
     { id: 'accepted', label: 'Accepted', color: 'emerald', count: applications.filter(a => a.status === 'accepted').length },
-    { id: 'rejected', label: 'Rejected', color: 'red', count: applications.filter(a => a.status === 'rejected').length }
+    { id: 'rejected', label: 'Rejected', color: 'red', count: applications.filter(a => a.status === 'rejected').length },
   ];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'applied': return <FileText className="w-4 h-4" />;
-      case 'screening': return <Phone className="w-4 h-4" />;
-      case 'interview': return <Video className="w-4 h-4" />;
+      case 'applied': return <Clock className="w-4 h-4" />;
+      case 'screening': return <Eye className="w-4 h-4" />;
+      case 'interview': return <MessageSquare className="w-4 h-4" />;
       case 'offer': return <Award className="w-4 h-4" />;
       case 'accepted': return <CheckCircle className="w-4 h-4" />;
       case 'rejected': return <XCircle className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-      case 'medium': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
-      case 'low': return 'text-green-600 bg-green-100 dark:bg-green-900/20';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+      case 'high': return 'text-red-600 bg-red-100';
+      case 'medium': return 'text-yellow-600 bg-yellow-100';
+      case 'low': return 'text-green-600 bg-green-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  const updateApplicationStatus = (appId: string, newStatus: string) => {
-    setApplications(prev => prev.map(app => 
-      app.id === appId ? { ...app, status: newStatus as any } : app
-    ));
-  };
-
-  const renderPipelineView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
-      {statusColumns.map((column) => (
-        <motion.div
-          key={column.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg border border-slate-200 dark:border-slate-700"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-lg bg-${column.color}-100 dark:bg-${column.color}-900/20`}>
-                {getStatusIcon(column.id)}
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">{column.label}</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{column.count} applications</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3 min-h-[400px]">
-            <AnimatePresence>
-              {filteredApplications
-                .filter(app => app.status === column.id)
-                .map((app, index) => (
-                  <motion.div
-                    key={app.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    onClick={() => setSelectedApplication(app)}
-                    className="p-4 bg-slate-50 dark:bg-slate-700 rounded-xl cursor-pointer hover:shadow-md transition-all border border-slate-200 dark:border-slate-600"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{app.company}</h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(app.priority)}`}>
-                        {app.priority}
-                      </span>
-                    </div>
-                    
-                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-2">{app.position}</p>
-                    
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                      <MapPin className="w-3 h-3" />
-                      <span>{app.location}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
-                      <DollarSign className="w-3 h-3" />
-                      <span>{app.salary}</span>
-                    </div>
-
-                    {app.nextAction && (
-                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="text-xs font-medium text-blue-900 dark:text-blue-400">Next: {app.nextAction}</p>
-                        {app.nextActionDate && (
-                          <p className="text-xs text-blue-700 dark:text-blue-300">{new Date(app.nextActionDate).toLocaleDateString()}</p>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-            </AnimatePresence>
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-
-  const renderListView = () => (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-slate-50 dark:bg-slate-700">
-            <tr>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Company</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Position</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Status</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Applied</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Next Action</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Priority</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-slate-900 dark:text-white">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-            {filteredApplications.map((app, index) => (
-              <motion.tr
-                key={app.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">{app.company}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{app.location}</p>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">{app.position}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{app.salary}</p>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(app.status)}
-                    <span className="capitalize text-slate-900 dark:text-white">{app.status}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                  {new Date(app.appliedDate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">{app.nextAction}</p>
-                    {app.nextActionDate && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        {new Date(app.nextActionDate).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(app.priority)}`}>
-                    {app.priority}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedApplication(app)}
-                      className="p-1 text-slate-600 hover:text-blue-600 transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="p-1 text-slate-600 hover:text-green-600 transition-colors">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="p-1 text-slate-600 hover:text-red-600 transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        theme === 'dark' 
+          ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+          : 'bg-gradient-to-br from-slate-50 to-blue-50'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+            Loading application data...
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 to-blue-50'
+    }`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="mb-8"
         >
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Application Tracker</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Manage and track all your job applications in one place
-            </p>
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            Add Application
-          </motion.button>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Application Tracker</h1>
+          <p className="text-gray-600">Track and manage your job applications with real-time updates</p>
         </motion.div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {[
-            { label: 'Total Applications', value: applications.length, icon: FileText, color: 'blue' },
-            { label: 'Active Interviews', value: applications.filter(a => a.status === 'interview').length, icon: Video, color: 'purple' },
-            { label: 'Pending Offers', value: applications.filter(a => a.status === 'offer').length, icon: Award, color: 'green' },
-            { label: 'Success Rate', value: `${Math.round((applications.filter(a => a.status === 'accepted').length / applications.length) * 100)}%`, icon: TrendingUp, color: 'orange' }
-          ].map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-slate-700"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{stat.label}</p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{stat.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-xl bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
-                    <Icon className={`w-6 h-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
-                  </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {statusColumns.slice(0, 4).map((column, index) => (
+            <motion.div
+              key={column.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">{column.label}</p>
+                  <p className="text-2xl font-bold text-gray-900">{column.count}</p>
                 </div>
-              </motion.div>
-            );
-          })}
+                <div className={`p-3 rounded-lg bg-${column.color}-100`}>
+                  {getStatusIcon(column.id)}
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Filters and Search */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 mb-8"
-        >
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[300px]">
+        {/* Controls */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 mb-8">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col md:flex-row gap-4 flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Search companies or positions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Status</option>
+                {statusColumns.map(column => (
+                  <option key={column.id} value={column.id}>{column.label}</option>
+                ))}
+              </select>
+              
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Priority</option>
+                <option value="high">High Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="low">Low Priority</option>
+              </select>
             </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white"
-            >
-              <option value="all">All Status</option>
-              <option value="applied">Applied</option>
-              <option value="screening">Screening</option>
-              <option value="interview">Interview</option>
-              <option value="offer">Offer</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-            </select>
-
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white"
-            >
-              <option value="all">All Priority</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700 rounded-xl p-1">
-              {[
-                { id: 'pipeline', label: 'Pipeline', icon: BarChart3 },
-                { id: 'list', label: 'List', icon: FileText },
-                { id: 'calendar', label: 'Calendar', icon: Calendar }
-              ].map((view) => {
-                const Icon = view.icon;
-                return (
-                  <button
-                    key={view.id}
-                    onClick={() => setViewMode(view.id as any)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      viewMode === view.id
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {view.label}
-                  </button>
-                );
-              })}
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('pipeline')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  viewMode === 'pipeline' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Pipeline
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  viewMode === 'list' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                List
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Application
+              </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Main Content */}
-        <motion.div
-          key={viewMode}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          {viewMode === 'pipeline' && renderPipelineView()}
-          {viewMode === 'list' && renderListView()}
-          {viewMode === 'calendar' && (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-slate-700 text-center">
-              <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Calendar View</h3>
-              <p className="text-slate-600 dark:text-slate-400">Calendar integration coming soon!</p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Application Detail Modal */}
-        <AnimatePresence>
-          {selectedApplication && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-              onClick={() => setSelectedApplication(null)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {selectedApplication.company}
-                  </h2>
-                  <button
-                    onClick={() => setSelectedApplication(null)}
-                    className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+        {/* Applications Display */}
+        {viewMode === 'pipeline' ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {statusColumns.map((column) => (
+              <div key={column.id} className="bg-white rounded-xl p-4 shadow-lg border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">{column.label}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${column.color}-100 text-${column.color}-600`}>
+                    {column.count}
+                  </span>
                 </div>
-
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Position Details</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-slate-600 dark:text-slate-400">Position:</span> {selectedApplication.position}</p>
-                        <p><span className="text-slate-600 dark:text-slate-400">Location:</span> {selectedApplication.location}</p>
-                        <p><span className="text-slate-600 dark:text-slate-400">Salary:</span> {selectedApplication.salary}</p>
-                        <p><span className="text-slate-600 dark:text-slate-400">Applied:</span> {new Date(selectedApplication.appliedDate).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Status & Progress</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-slate-600 dark:text-slate-400">Current Status:</span> 
-                          <span className="ml-2 capitalize font-medium">{selectedApplication.status}</span>
-                        </p>
-                        <p><span className="text-slate-600 dark:text-slate-400">Stage:</span> {selectedApplication.stage}</p>
-                        <p><span className="text-slate-600 dark:text-slate-400">Priority:</span> 
-                          <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedApplication.priority)}`}>
-                            {selectedApplication.priority}
+                
+                <div className="space-y-3">
+                  {filteredApplications
+                    .filter(app => app.status === column.id)
+                    .map((app) => (
+                      <motion.div
+                        key={app.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ scale: 1.02 }}
+                        onClick={() => setSelectedApplication(app)}
+                        className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                      >
+                        <h4 className="font-medium text-gray-900 text-sm mb-1">{app.company}</h4>
+                        <p className="text-xs text-gray-600 mb-2">{app.position}</p>
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2 py-1 rounded text-xs ${getPriorityColor(app.priority)}`}>
+                            {app.priority}
                           </span>
-                        </p>
-                        {selectedApplication.responseTime && (
-                          <p><span className="text-slate-600 dark:text-slate-400">Response Time:</span> {selectedApplication.responseTime} days</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedApplication.contactPerson && (
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Contact Information</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-slate-600 dark:text-slate-400">Contact Person:</span> {selectedApplication.contactPerson}</p>
-                        {selectedApplication.contactEmail && (
-                          <p><span className="text-slate-600 dark:text-slate-400">Email:</span> 
-                            <a href={`mailto:${selectedApplication.contactEmail}`} className="ml-2 text-blue-600 hover:underline">
-                              {selectedApplication.contactEmail}
-                            </a>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedApplication.nextAction && (
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Next Actions</h3>
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="font-medium text-blue-900 dark:text-blue-400">{selectedApplication.nextAction}</p>
-                        {selectedApplication.nextActionDate && (
-                          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                            Due: {new Date(selectedApplication.nextActionDate).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedApplication.notes && (
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Notes</h3>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                        <p className="text-slate-700 dark:text-slate-300">{selectedApplication.notes}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      Edit Application
-                    </button>
-                    <button className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                      Update Status
-                    </button>
-                    <button className="py-2 px-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                  </div>
+                          <span className="text-xs text-gray-500">{app.appliedDate}</span>
+                        </div>
+                      </motion.div>
+                    ))}
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredApplications.map((app) => (
+                    <tr key={app.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                              <Building className="h-5 w-5 text-gray-500" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{app.company}</div>
+                            <div className="text-sm text-gray-500">{app.location}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{app.position}</div>
+                        <div className="text-sm text-gray-500">{app.salary}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColumns.find(c => c.id === app.status)?.color}-100 text-${statusColumns.find(c => c.id === app.status)?.color}-800`}>
+                          {getStatusIcon(app.status)}
+                          <span className="ml-1">{app.stage}</span>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(app.priority)}`}>
+                          {app.priority}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {app.appliedDate}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{app.nextAction}</div>
+                        <div className="text-sm text-gray-500">{app.nextActionDate}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => setSelectedApplication(app)}
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button className="text-gray-600 hover:text-gray-900 mr-3">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button className="text-red-600 hover:text-red-900">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

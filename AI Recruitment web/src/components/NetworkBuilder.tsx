@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from './ThemeProvider';
 import { 
   Users, 
   Linkedin, 
@@ -69,6 +70,7 @@ interface PortfolioItem {
 }
 
 export function NetworkBuilder({ user }: NetworkBuilderProps) {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('network');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
@@ -691,7 +693,11 @@ export function NetworkBuilder({ user }: NetworkBuilderProps) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 to-blue-50'
+    }`}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

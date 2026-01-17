@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from './ThemeProvider';
 import {
   Target,
   TrendingUp,
@@ -74,6 +75,7 @@ interface LearningResource {
 }
 
 export function CareerGrowthPlanner({ user }: CareerGrowthPlannerProps) {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('roadmap');
   const [selectedTimeframe, setSelectedTimeframe] = useState('all');
   const [showAddGoal, setShowAddGoal] = useState(false);
@@ -634,7 +636,11 @@ export function CareerGrowthPlanner({ user }: CareerGrowthPlannerProps) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' 
+        : 'bg-gradient-to-br from-slate-50 to-blue-50'
+    }`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div

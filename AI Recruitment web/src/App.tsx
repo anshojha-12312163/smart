@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { NavigationStable } from './components/NavigationStable';
 import { LandingPage } from './components/LandingPage';
 import { SmartHireDashboard } from './components/SmartHireDashboard';
-import { Navigation } from './components/Navigation';
-import { ThemeProvider } from './components/ThemeProvider';
 import { JobSearchHub } from './components/JobSearchHub';
 import { Analytics } from './components/Analytics';
 import { InterviewPrepStudio } from './components/InterviewPrepStudio';
@@ -14,8 +13,10 @@ import { SalaryNegotiationToolkit } from './components/SalaryNegotiationToolkit'
 import { CompanyIntelligenceCenter } from './components/CompanyIntelligenceCenter';
 import { NetworkBuilder } from './components/NetworkBuilder';
 import { CVAnalysisBuilder } from './components/CVAnalysisBuilder';
+import { ThemeProvider, useTheme } from './components/ThemeProvider';
 
 function AppContent() {
+  const { theme } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<'jobseeker' | 'recruiter'>('jobseeker');
@@ -24,32 +25,12 @@ function AppContent() {
 
   // Check for existing authentication on app load
   useEffect(() => {
-    // Clean URL parameters (remove OAuth params and other unwanted parameters)
-    const url = new URL(window.location.href);
-    const cleanParams = new URLSearchParams();
-    
-    // Only keep essential parameters, remove OAuth and other unwanted params
-    const allowedParams = ['page']; // Add any parameters you want to keep
-    
-    for (const [key, value] of url.searchParams.entries()) {
-      if (allowedParams.includes(key)) {
-        cleanParams.set(key, value);
-      }
-    }
-    
-    // Update URL without unwanted parameters
-    const cleanUrl = `${url.origin}${url.pathname}${cleanParams.toString() ? '?' + cleanParams.toString() : ''}`;
-    if (cleanUrl !== window.location.href) {
-      window.history.replaceState({}, '', cleanUrl);
-    }
-    
     const token = localStorage.getItem('authToken');
     const savedUser = localStorage.getItem('user');
     
     if (token && savedUser) {
       try {
         const userData = JSON.parse(savedUser);
-        // console.log('🔍 Found existing authentication:', userData.name);
         setIsLoggedIn(true);
         setUser(userData);
         setUserType(userData.userType || 'jobseeker');
@@ -99,9 +80,13 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gray-900' 
+        : 'bg-slate-50'
+    }`}>
       {isLoggedIn && (
-        <Navigation 
+        <NavigationStable 
           currentPage={getCurrentPage()} 
           onNavigate={handleNavigate}
           onLogout={handleLogout}
@@ -230,7 +215,7 @@ function AppContent() {
             } 
           />
           
-          {/* Catch-all route - redirect to dashboard if logged in, otherwise to home */}
+          {/* Catch-all route */}
           <Route 
             path="*" 
             element={

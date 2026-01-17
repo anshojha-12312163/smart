@@ -47,33 +47,33 @@
 
 /* CSS Variables for the existing theme system */
 :root {
-  /* Light theme variables */
+  /* LinkedIn-style light theme variables */
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   --text-primary: #1e293b;
   --text-secondary: #475569;
   --text-muted: #64748b;
-  --primary-blue: #3b82f6;
-  --cyan-glow: #06b6d4;
-  --violet-accent: #8b5cf6;
+  --primary-blue: #0a66c2;
+  --cyan-glow: #0a66c2;
+  --violet-accent: #0a66c2;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --background-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --background-1: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
 }
 
 .dark {
-  /* Dark theme variables */
+  /* LinkedIn-style dark theme variables */
   --glass-bg: rgba(15, 23, 42, 0.8);
   --glass-border: rgba(255, 255, 255, 0.1);
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  --primary-blue: #60a5fa;
-  --cyan-glow: #22d3ee;
-  --violet-accent: #a78bfa;
+  --primary-blue: #0a66c2;
+  --cyan-glow: #0a66c2;
+  --violet-accent: #0a66c2;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  --background-1: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --background-1: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
 }
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {
