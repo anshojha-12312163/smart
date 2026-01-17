@@ -52,9 +52,23 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      sourcemap: false,
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            router: ['react-router-dom'],
+            ui: ['lucide-react', 'motion'],
+          },
+        },
+      },
     },
     server: {
       port: 3001,
       open: true,
+    },
+    preview: {
+      port: 3001,
     },
   });
